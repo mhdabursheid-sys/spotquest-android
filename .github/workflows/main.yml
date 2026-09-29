@@ -1,8 +1,10 @@
+
 name: Build SpotQuest APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -14,51 +16,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Extract project
+      - name: Extract SpotQuest project
+        shell: bash
         run: |
+          set -e
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" -o -iname "*SpotQuest*" | head -1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "SpotQuest project archive not found"
+            ls -la
+            exit 1
+          fi
+
+          echo "Using archive: $ZIP_FILE"
           mkdir -p project
-          ZIP=$(find . -maxdepth 1 -type f -iname "*.zip" | head -1)
-          echo "ZIP found: $ZIP"
-          test -n "$ZIP"
-          unzip -q "$ZIP" -d project
-          find project -maxdepth 3 -type f | head -50
-
-      - name: Build APK
-        run: |
-          SETTINGS=$(find project -type f -name "settings.gradle.kts" | head -1)
-          test -n "$SETTINGS"
-          DIR=$(dirname "$SETTINGS")
-          echo "Android project: $DIR"
-          cd "$DIR"
-
-          echo "Fixing JVM targets..."
-          if [ -f app/build.gradle.kts ]; then
-            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' app/build.gradle.kts
-            sed -i 's/JavaVersion.VERSION_11/JavaVersion.VERSION_17/g' app/build.gradle.kts
-            sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' app/build.gradle.kts
-            sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" app/build.gradle.kts
-            cat app/build.gradle.kts
-          fi
-
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            ./gradlew assembleDebug
-          else
-            gradle assembleDebug
-          fi
-
-      - name: Find APK
-        run: |
-          find project -type f -name "*.apk" -print
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: SpotQuest-APK
-          path: project/**/build/outputs/apk/**/*.apk
-          if-no-files-found: error
+          unzip -q "$ZIP_FILE" -d project
+          find project -
