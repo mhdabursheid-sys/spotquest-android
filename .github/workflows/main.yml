@@ -1,0 +1,48 @@
+name: Build SpotQuest APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find and extract SpotQuest project
+        shell: bash
+        run: |
+          ZIP_FILE="$(find . -maxdepth 1 -type f -iname 'SpotQuest_Complete_MVP*.zip' -o -iname '*SpotQuest*.zip' | head -n 1)"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "SpotQuest ZIP file not found."
+            ls -la
+            exit 1
+          fi
+
+          echo "Using: $ZIP_FILE"
+          mkdir -p extracted
+          unzip -q "$ZIP_FILE" -d extracted
+
+          echo "Extracted contents:"
+          find extracted -maxdepth 3 -type f | head -100
+
+      - name: Locate Android project
+        id: project
+        shell: bash
+        run: |
+          SETTINGS="$(find extracted -type f -name 'settings.gradle.kts' -o -name 'settings.gradle' | head -n 1)"
+          if [ -z "$SETTINGS" ]; then
+            echo "Android settings.gradle file not found."
+            exit 1
+          fi
+
+          PROJECT_DIR="$(dirname "$SETTINGS")"
+          echo "Project directory: $PROJECT_DIR"
+          echo "dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java 
