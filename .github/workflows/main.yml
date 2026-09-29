@@ -22,11 +22,11 @@ jobs:
       - name: Extract project
         run: |
           mkdir -p project
-          ZIP=$(find . -maxdepth 1 -type f -iname "*SpotQuest*.zip" | head -1)
+          ZIP=$(find . -maxdepth 1 -type f -iname "*.zip" | head -1)
           echo "ZIP found: $ZIP"
           test -n "$ZIP"
           unzip -q "$ZIP" -d project
-          find project -maxdepth 3 -type f | head -100
+          find project -maxdepth 3 -type f | head -50
 
       - name: Build APK
         run: |
@@ -35,6 +35,15 @@ jobs:
           DIR=$(dirname "$SETTINGS")
           echo "Android project: $DIR"
           cd "$DIR"
+
+          echo "Fixing JVM targets..."
+          if [ -f app/build.gradle.kts ]; then
+            sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' app/build.gradle.kts
+            sed -i 's/JavaVersion.VERSION_11/JavaVersion.VERSION_17/g' app/build.gradle.kts
+            sed -i 's/jvmTarget = "1.8"/jvmTarget = "17"/g' app/build.gradle.kts
+            sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" app/build.gradle.kts
+            cat app/build.gradle.kts
+          fi
 
           if [ -f gradlew ]; then
             chmod +x gradlew
